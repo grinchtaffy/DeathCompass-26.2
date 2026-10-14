@@ -19,3 +19,9 @@ Requires **Java 25**, **Gradle 9.5.1**, and internet access to download Fabric d
 ## Other limitations
 
 Known portal mode searches for locally observed portals; it cannot know every portal on the server. Nether coordinate conversion is 8:1; the End has no equivalent. World/server history keys rely on multiplayer address or singleplayer world display name, so singleplayer worlds with duplicate names may share a history. The compass is a minimal direction strip rather than a pixel-perfect vanilla compass item.
+
+
+## Custom waypoint tracking (v1.1.0)
+Open settings with the grave/backtick key and select **Custom waypoints**. Click **Create waypoint**, enter its name and integer X/Y/Z coordinates, cycle through Overworld/Nether/End, then **Save and track waypoint**. The default example is My Base (1250, 64, -830) in the Overworld; it is a form example, not pre-saved. Saved waypoints are listed per world/server, selectable one at a time and removable with Delete. **Resume death** switches back without deleting waypoints or death history. Cross-dimensional target guidance tells you to change dimension and optionally points to known portals. No commands or cheats required.
+
+**Build caveat:** this is an updated source project for GitHub Actions, not a locally compile-tested playable JAR. Build verification checks the Fabric metadata and main entrypoint, not in-game behavior.

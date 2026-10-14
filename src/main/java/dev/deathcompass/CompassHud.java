@@ -10,19 +10,24 @@ public final class CompassHud {
     private CompassHud() {}
     public static void draw(GuiGraphicsExtractor g, DeltaTracker dt) {
         Minecraft mc=Minecraft.getInstance();TrackerData cfg=DeathCompass.data;
-        if(!cfg.enabled||mc.player==null||mc.level==null||mc.options.hideGui)return;
+        if(!cfg.enabled||mc.player==null||mc.level==null)return;
         if(DeathCompass.lavaBeneathAimedBlock(mc)) center(g,mc,"! LAVA DIRECTLY UNDER TARGET BLOCK !",g.guiWidth()/2, g.guiHeight()/2-38,0xFFFF5555);
         TrackerData.WorldRecord w=DeathCompass.world();
-        boolean searching=!"death".equals(w.targetMode);
+        boolean searching="block".equals(w.targetMode)||"structure".equals(w.targetMode);
+        boolean waypointMode="waypoint".equals(w.targetMode);
+        TrackerData.Waypoint waypoint=waypointMode?DeathCompass.selectedWaypoint():null;
         TrackerData.Death d=DeathCompass.active();
-        if(!searching && d==null)return;
+        if(waypointMode && waypoint==null){center(g,mc,"NO WAYPOINT SELECTED",g.guiWidth()/2+cfg.xOffset,cfg.yOffset,0xFFFFB55F);return;}
+        if(!searching && !waypointMode && d==null)return;
         if(searching && !w.targetFound){
             center(g,mc,"SEARCHING NEARBY: "+w.searchId, g.guiWidth()/2+cfg.xOffset,cfg.yOffset,cfg.color|0xFF000000);
             return;
         }
-        int goalX=searching?w.targetX:d.x,goalY=searching?w.targetY:d.y,goalZ=searching?w.targetZ:d.z;
-        String goalDimension=searching?w.targetDimension:d.dimension;
-        String goalLabel=searching?("block".equals(w.targetMode)?"BLOCK ":"STRUCTURE CLUE ")+w.searchId:"DEATH";
+        int goalX=waypointMode?waypoint.x:searching?w.targetX:d.x;
+        int goalY=waypointMode?waypoint.y:searching?w.targetY:d.y;
+        int goalZ=waypointMode?waypoint.z:searching?w.targetZ:d.z;
+        String goalDimension=waypointMode?waypoint.dimension:searching?w.targetDimension:d.dimension;
+        String goalLabel=waypointMode?"WAYPOINT "+waypoint.name:searching?("block".equals(w.targetMode)?"BLOCK ":"STRUCTURE CLUE ")+w.searchId:"DEATH";
         int cx=g.guiWidth()/2+cfg.xOffset, top=cfg.yOffset;
         int color=cfg.color|0xFF000000;
         boolean other=!DeathCompass.dimension(mc).equals(goalDimension);
@@ -59,11 +64,11 @@ public final class CompassHud {
             for(int i=0;i<4;i++){
                 double diff=wrap(bearings[i]-facing);
                 int px=cx+(int)Math.round(diff*half/95.0);
-                if(px>cx-half+9&&px<cx+half-9)g.drawString(mc.font,cardinal[i],px-3,top+3,0xFFDDDDDD,true);
+                if(px>cx-half+9&&px<cx+half-9)g.text(mc.font,cardinal[i],px-3,top+3,0xFFDDDDDD,true);
             }
             int deathX=cx+(int)Math.round(relative*half/95.0);
-            if(Math.abs(relative)<=95)g.drawString(mc.font,"◆",deathX-3,top+3,0xFFFF6868,true);
-            g.drawString(mc.font,"▼",cx-3,top+10,color,true);
+            if(Math.abs(relative)<=95)g.text(mc.font,"◆",deathX-3,top+3,0xFFFF6868,true);
+            g.text(mc.font,"▼",cx-3,top+10,color,true);
             top+=25*scale/100;
         }
         if(!message.isEmpty()){
@@ -86,10 +91,10 @@ public final class CompassHud {
                     center(g,mc,"Overworld estimate X:"+(goalX*8L)+" Z:"+(goalZ*8L),cx,top,0xFFBBCCDD);
             }
         }
-        if(!searching && !other && Math.sqrt(dx*dx+dy*dy+dz*dz)<=cfg.arrivalRadius)
+        if(!searching && !waypointMode && !other && Math.sqrt(dx*dx+dy*dy+dz*dz)<=cfg.arrivalRadius)
             center(g,mc,"DEATH REACHED - OPEN SETTINGS TO END MISSION",cx,top+13,0xFF68FF95);
     }
-    private static void center(GuiGraphicsExtractor g,Minecraft mc,String s,int x,int y,int color){g.drawString(mc.font,s,x-mc.font.width(s)/2,y,color,true);}
+    private static void center(GuiGraphicsExtractor g,Minecraft mc,String s,int x,int y,int color){g.text(mc.font,s,x-mc.font.width(s)/2,y,color,true);}
     private static double wrap(double deg){deg%=360;if(deg>180)deg-=360;if(deg< -180)deg+=360;return deg;}
     static String shortDimension(String id){return id.startsWith("minecraft:")?id.substring(10).replace("the_","").replace('_',' '):id;}
 }

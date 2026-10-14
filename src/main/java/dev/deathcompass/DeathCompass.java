@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.loader.api.FabricLoader;
@@ -32,7 +32,7 @@ public final class DeathCompass implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         load();
-        settingsKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.deathcompass.settings",InputConstants.Type.KEYSYM,InputConstants.KEY_GRAVE,KeyMapping.Category.register(Identifier.fromNamespaceAndPath("deathcompass","main"))));
+        settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.deathcompass.settings",InputConstants.Type.KEYSYM,InputConstants.KEY_GRAVE,KeyMapping.Category.register(Identifier.fromNamespaceAndPath("deathcompass","main"))));
         ClientTickEvents.END_CLIENT_TICK.register(DeathCompass::tick);
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,Identifier.fromNamespaceAndPath("deathcompass","tracker"),CompassHud::draw);
     }
@@ -73,6 +73,30 @@ public final class DeathCompass implements ClientModInitializer {
         w.searchId=id; w.targetMode="structure"; w.targetFound=false;
         w.scanCursor=0;w.scanSignature="";save();
     }
+    static TrackerData.Waypoint selectedWaypoint(){
+        if(worldKey.isEmpty()) return null;
+        TrackerData.WorldRecord w=world();
+        if(w.waypoints==null) w.waypoints=new java.util.ArrayList<>();
+        return w.waypoints.stream().filter(p->p.id.equals(w.selectedWaypointId)).findFirst().orElse(null);
+    }
+    static void addWaypoint(String name,int x,int y,int z,String dim){
+        TrackerData.WorldRecord w=world();
+        if(w.waypoints==null) w.waypoints=new java.util.ArrayList<>();
+        TrackerData.Waypoint p=new TrackerData.Waypoint(java.util.UUID.randomUUID().toString(),name,x,y,z,dim);
+        w.waypoints.add(p);w.selectedWaypointId=p.id;w.targetMode="waypoint";save();
+    }
+    static void chooseWaypoint(String id){
+        TrackerData.WorldRecord w=world();
+        w.selectedWaypointId=id;w.targetMode="waypoint";save();
+    }
+    static void deleteWaypoint(String id){
+        TrackerData.WorldRecord w=world();
+        if(w.waypoints==null)return;
+        w.waypoints.removeIf(p->p.id.equals(id));
+        if(id.equals(w.selectedWaypointId)){w.selectedWaypointId="";w.targetMode="death";}
+        save();
+    }
+    static void stopWaypoint(){world().targetMode="death";save();}
     static void stopSearch(){world().targetMode="death";save();}
     // Incremental, budgeted loaded-chunk scan. Each cycle covers the configurable
     // cube around the player. Never reads unloaded chunks or sends server commands.

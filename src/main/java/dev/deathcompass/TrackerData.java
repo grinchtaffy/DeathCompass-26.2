@@ -14,7 +14,9 @@ public final class TrackerData {
         public Death active;
         public List<Death> history = new ArrayList<>();
         public List<Portal> portals = new ArrayList<>();
-        // Only one active destination: death, block, or structure waypoint.
+        public List<Waypoint> waypoints = new ArrayList<>();
+        public String selectedWaypointId = "";
+        // Only one active destination: death, block, structure, or custom waypoint.
         public String targetMode = "death";
         public String searchId = "minecraft:ancient_debris";
         public int targetX, targetY, targetZ;
@@ -29,6 +31,13 @@ public final class TrackerData {
         public long timestamp;
         public Death(int x,int y,int z,String dimension) {
             this.x=x;this.y=y;this.z=z;this.dimension=dimension;this.timestamp=System.currentTimeMillis();
+        }
+    }
+    public static class Waypoint {
+        public String id, name, dimension;
+        public int x, y, z;
+        public Waypoint(String id, String name, int x, int y, int z, String dimension) {
+            this.id=id; this.name=name; this.x=x; this.y=y; this.z=z; this.dimension=dimension;
         }
     }
     public static class Portal {

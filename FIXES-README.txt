@@ -1,0 +1,1 @@
+Fixes from GitHub compiler log: KeyMappingHelper 26.2 API; GuiGraphicsExtractor.text; renamed SettingsScreen helper; removed obsolete options.hideGui; changed Gradle dependency declarations. UNTESTED: please build on GitHub Actions.

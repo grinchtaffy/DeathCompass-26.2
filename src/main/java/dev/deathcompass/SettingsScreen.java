@@ -8,11 +8,13 @@ import net.minecraft.network.chat.Component;
 
 public final class SettingsScreen extends Screen {
     private int page=0, historyPage=0;
-    private EditBox idBox;
+    private EditBox idBox, nameBox, xBox, yBox, zBox;
+    private int waypointPage=0;
+    private String chosenDimension="minecraft:overworld";
     private String searchMessage="";
     public SettingsScreen(){super(Component.literal("Death Compass Settings"));}
-    private void btn(int x,int y,int w,String label,Runnable action){addRenderableWidget(Button.builder(Component.literal(label),b->{action.run();DeathCompass.save();rebuildWidgets();}).bounds(x,y,w,20).build());}
-    private void rebuildWidgets(){clearWidgets();init();}
+    private void btn(int x,int y,int w,String label,Runnable action){addRenderableWidget(Button.builder(Component.literal(label),b->{action.run();DeathCompass.save();refreshWidgets();}).bounds(x,y,w,20).build());}
+    private void refreshWidgets(){clearWidgets();init();}
     @Override protected void init(){
         int x=width/2-155,y=height/2-105,w=150;
         if(page==0){
@@ -33,7 +35,8 @@ public final class SettingsScreen extends Screen {
             btn(x+160,y+150,w,"Reach radius: "+d.arrivalRadius,()->d.arrivalRadius=d.arrivalRadius>=20?1:d.arrivalRadius+1);
             btn(x,y+175,w,"Death history",()->page=1);
             btn(x+160,y+175,w,"End mission",DeathCompass::endMission);
-            btn(x+80,y+200,w,"Find block / structure",()->page=2);
+            btn(x,y+200,w,"Find block / structure",()->page=2);
+            btn(x+160,y+200,w,"Custom waypoints",()->page=3);
         }else if(page==1){
             var history=DeathCompass.world().history;
             int start=historyPage*5;
@@ -45,6 +48,41 @@ public final class SettingsScreen extends Screen {
             btn(x,y+150,w,"Previous",()->historyPage=Math.max(0,historyPage-1));
             btn(x+160,y+150,w,"Next",()->historyPage=Math.min((Math.max(0,history.size()-1))/5,historyPage+1));
             btn(x+80,y+175,w,"Back",()->page=0);
+        }else if(page==3){
+            TrackerData.WorldRecord record=DeathCompass.world();
+            if(record.waypoints==null)record.waypoints=new java.util.ArrayList<>();
+            btn(x,y,310,"Create waypoint (enter coordinates)",()->{page=4;});
+            int start=waypointPage*4;
+            for(int i=start;i<Math.min(start+4,record.waypoints.size());i++){
+                TrackerData.Waypoint point=record.waypoints.get(i);
+                int row=i-start;
+                String title=point.name+" ("+point.x+","+point.y+","+point.z+")";
+                btn(x,y+29+row*30,240,truncate(title,38),()->DeathCompass.chooseWaypoint(point.id));
+                btn(x+245,y+29+row*30,65,"Delete",()->DeathCompass.deleteWaypoint(point.id));
+            }
+            btn(x,y+156,w,"Previous",()->waypointPage=Math.max(0,waypointPage-1));
+            btn(x+160,y+156,w,"Next",()->waypointPage=Math.min(Math.max(0,(record.waypoints.size()-1)/4),waypointPage+1));
+            btn(x,y+184,w,"Resume death",DeathCompass::stopWaypoint);
+            btn(x+160,y+184,w,"Back",()->page=0);
+        }else if(page==4){
+            nameBox=new EditBox(font,x,y+8,310,20,Component.literal("Waypoint name"));nameBox.setValue("My Base");addRenderableWidget(nameBox);
+            xBox=numberBox(x,y+43,"X",1250);yBox=numberBox(x+107,y+43,"Y",64);zBox=numberBox(x+214,y+43,"Z",-830);
+            btn(x,y+77,310,"Dimension: "+CompassHud.shortDimension(chosenDimension),()->chosenDimension=switch(chosenDimension){
+                case "minecraft:overworld"->"minecraft:the_nether";
+                case "minecraft:the_nether"->"minecraft:the_end";
+                default->"minecraft:overworld";
+            });
+            btn(x,y+107,310,"Save and track waypoint",()->{
+                try {
+                    String name=nameBox.getValue().trim();
+                    if(name.isEmpty()||name.length()>48){searchMessage="Name must be 1-48 characters";return;}
+                    int ax=Integer.parseInt(xBox.getValue().trim()),ay=Integer.parseInt(yBox.getValue().trim()),az=Integer.parseInt(zBox.getValue().trim());
+                    if(ay< -2048||ay>2048){searchMessage="Y must be between -2048 and 2048";return;}
+                    DeathCompass.addWaypoint(name,ax,ay,az,chosenDimension);
+                    searchMessage="Waypoint saved!";page=3;
+                }catch(NumberFormatException e){searchMessage="X, Y and Z must be whole numbers";}
+            });
+            btn(x+80,y+143,w,"Back",()->{searchMessage="";page=3;});
         } else {
             TrackerData.WorldRecord record=DeathCompass.world();
             TrackerData cfg=DeathCompass.data;
@@ -76,6 +114,7 @@ public final class SettingsScreen extends Screen {
         }
         btn(width/2-50,height-25,100,"Done",()->Minecraft.getInstance().gui.setScreen(null));
     }
+    private static String truncate(String text,int length){return text.length()<=length?text:text.substring(0,length-3)+"...";}
     private EditBox numberBox(int x,int y,String name,int value){
         EditBox e=new EditBox(font,x,y,96,20,Component.literal(name));
         e.setValue(Integer.toString(value));addRenderableWidget(e);return e;
@@ -84,11 +123,17 @@ public final class SettingsScreen extends Screen {
     private static String on(boolean v){return v?"ON":"OFF";}
     @Override public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor graphics,int mouseX,int mouseY,float delta){
         super.extractRenderState(graphics,mouseX,mouseY,delta);
+        if(page==4){
+            int x=width/2-155,y=height/2-105;
+            graphics.text(font,"Waypoint name",x,y-3,0xFFFFFFFF,true);
+            graphics.text(font,"X                             Y                            Z",x,y+32,0xFFFFFFFF,true);
+            graphics.text(font,searchMessage,x,y+175,0xFFFFCC88,true);
+        }
         if(page==2){
             int x=width/2-155,y=height/2-105;
-            graphics.drawString(font,"Search ID (e.g. minecraft:ancient_debris)",x,y+5,0xFFFFFFFF,true);
-            graphics.drawString(font,"Client-loaded chunks only; structures are landmark guesses.",x,y+225,0xFFDDCC88,true);
-            graphics.drawString(font,searchMessage,x,y+238,0xFFFFCC88,true);
+            graphics.text(font,"Search ID (e.g. minecraft:ancient_debris)",x,y+5,0xFFFFFFFF,true);
+            graphics.text(font,"Client-loaded chunks only; structures are landmark guesses.",x,y+225,0xFFDDCC88,true);
+            graphics.text(font,searchMessage,x,y+238,0xFFFFCC88,true);
         }
     }
     @Override public boolean isPauseScreen(){return false;}
