@@ -7,7 +7,15 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
 public final class SettingsScreen extends Screen {
-    private int page=0, historyPage=0;
+    private int page=0, historyPage=0, structurePage=0;
+    private static final String[] STRUCTURES={
+        "minecraft:ancient_city", "minecraft:nether_fortress", "minecraft:bastion_remnant",
+        "minecraft:stronghold", "minecraft:trial_chambers", "minecraft:monument",
+        "minecraft:desert_pyramid", "minecraft:jungle_temple", "minecraft:end_city",
+        "minecraft:woodland_mansion", "minecraft:pillager_outpost", "minecraft:shipwreck",
+        "minecraft:ruined_portal", "minecraft:mineshaft", "minecraft:village",
+        "minecraft:ocean_ruin"
+    };
     private EditBox idBox, nameBox, xBox, yBox, zBox;
     private int waypointPage=0;
     private String chosenDimension="minecraft:overworld";
@@ -37,6 +45,10 @@ public final class SettingsScreen extends Screen {
             btn(x+160,y+175,w,"End mission",DeathCompass::endMission);
             btn(x,y+200,w,"Find block / structure",()->page=2);
             btn(x+160,y+200,w,"Custom waypoints",()->page=3);
+            btn(x,y+225,w,"Safety & mining alerts",()->page=6);
+            addRenderableWidget(Button.builder(Component.literal("Secondary keybinds"),b ->
+                Minecraft.getInstance().gui.setScreen(new SecondaryKeybindsScreen(this)))
+                .bounds(x+160,y+225,w,20).build());
         }else if(page==1){
             var history=DeathCompass.world().history;
             int start=historyPage*5;
@@ -83,6 +95,46 @@ public final class SettingsScreen extends Screen {
                 }catch(NumberFormatException e){searchMessage="X, Y and Z must be whole numbers";}
             });
             btn(x+80,y+143,w,"Back",()->{searchMessage="";page=3;});
+        } else if(page==5){
+            int start=structurePage*5;
+            for(int i=start;i<Math.min(start+5,STRUCTURES.length);i++){
+                String id=STRUCTURES[i];
+                int row=i-start;
+                btn(x,y+row*28,310,"Find clue: "+id.substring(10).replace('_',' '),()->{
+                    DeathCompass.trackStructure(id);
+                    searchMessage="Searching loaded chunks for "+id+" clue";
+                    page=2;
+                });
+            }
+            btn(x,y+154,w,"Previous",()->structurePage=Math.max(0,structurePage-1));
+            btn(x+160,y+154,w,"Next",()->structurePage=Math.min((STRUCTURES.length-1)/5,structurePage+1));
+            btn(x+80,y+185,w,"Back",()->page=2);
+        } else if(page==6){
+            TrackerData c=DeathCompass.data;
+            btn(x,y,310,"Safety warnings: "+on(c.hazardAlerts),()->c.hazardAlerts=!c.hazardAlerts);
+            btn(x,y+25,w,"Predict lava: "+on(c.lavaWarning),()->c.lavaWarning=!c.lavaWarning);
+            btn(x+160,y+25,w,"Falling gravel: "+on(c.gravelWarning),()->c.gravelWarning=!c.gravelWarning);
+            btn(x,y+50,w,"Nearby mobs: "+on(c.mobWarning),()->c.mobWarning=!c.mobWarning);
+            btn(x+160,y+50,w,"Other hazards: "+on(c.environmentWarning),()->c.environmentWarning=!c.environmentWarning);
+            btn(x,y+75,w,"Lava spreading: "+on(c.lavaSpreadWarning),()->c.lavaSpreadWarning=!c.lavaSpreadWarning);
+            btn(x+160,y+75,w,"Lava in walls: "+on(c.showNearbyLava),()->c.showNearbyLava=!c.showNearbyLava);
+            btn(x,y+105,w,"Danger radius - ("+c.hazardRadius+")",()->c.hazardRadius=Math.max(2,c.hazardRadius-1));
+            btn(x+160,y+105,w,"Danger radius + ("+c.hazardRadius+")",()->c.hazardRadius=Math.min(8,c.hazardRadius+1));
+            btn(x,y+137,310,"Warning sounds & volume...",()->page=7);
+            btn(x+80,y+176,w,"Back",()->page=0);
+        } else if(page==7){
+            TrackerData c=DeathCompass.data;
+            btn(x,y,310,"Audible hazard warnings: "+on(c.warningSounds),()->c.warningSounds=!c.warningSounds);
+            btn(x,y+28,w,"Lava alerts: "+on(c.soundLava),()->c.soundLava=!c.soundLava);
+            btn(x+160,y+28,w,"Falling blocks: "+on(c.soundFallingBlocks),()->c.soundFallingBlocks=!c.soundFallingBlocks);
+            btn(x,y+56,w,"Hostiles: "+on(c.soundHostiles),()->c.soundHostiles=!c.soundHostiles);
+            btn(x+160,y+56,w,"Other dangers: "+on(c.soundOther),()->c.soundOther=!c.soundOther);
+            btn(x,y+86,w,"Volume - ("+c.warningSoundVolume+"%)",()->c.warningSoundVolume=Math.max(0,c.warningSoundVolume-10));
+            btn(x+160,y+86,w,"Volume + ("+c.warningSoundVolume+"%)",()->c.warningSoundVolume=Math.min(100,c.warningSoundVolume+10));
+            btn(x,y+114,w,"Repeat slower",()->c.warningSoundCooldownTicks=Math.min(600,c.warningSoundCooldownTicks+20));
+            btn(x+160,y+114,w,"Repeat faster",()->c.warningSoundCooldownTicks=Math.max(20,c.warningSoundCooldownTicks-20));
+            btn(x,y+142,310,"Min interval: "+c.warningSoundCooldownTicks/20.0f+" seconds",()->{});
+            btn(x+80,y+178,w,"Back",()->page=6);
         } else {
             TrackerData.WorldRecord record=DeathCompass.world();
             TrackerData cfg=DeathCompass.data;
@@ -96,21 +148,20 @@ public final class SettingsScreen extends Screen {
                     searchMessage="Searching loaded chunks for "+id;
                 } else searchMessage="Enter a block ID, e.g. ancient_debris";
             });
-            btn(x,y+63,310,"Track STRUCTURE clue (loaded chunks)",()->{
-                String id=normalize(idBox.getValue());
-                if(java.util.Set.of("minecraft:ancient_city","minecraft:nether_fortress","minecraft:bastion_remnant","minecraft:stronghold","minecraft:trial_chambers","minecraft:monument","minecraft:desert_pyramid","minecraft:jungle_temple").contains(id)) {
-                    DeathCompass.trackStructure(id);
-                    searchMessage="Looking for landmark blocks; not confirmed structure positions";
-                } else searchMessage="Available: ancient_city, stronghold, bastion_remnant, ...";
-            });
+            btn(x,y+63,310,"Choose structure from list (clues only)",()->page=5);
             btn(x,y+91,w,"Radius - ("+cfg.scanRadius+")",()->cfg.scanRadius=Math.max(4,cfg.scanRadius-4));
             btn(x+160,y+91,w,"Radius + ("+cfg.scanRadius+")",()->cfg.scanRadius=Math.min(64,cfg.scanRadius+4));
             btn(x,y+117,w,"Scan speed -",()->cfg.scanBudget=Math.max(100,cfg.scanBudget-500));
             btn(x+160,y+117,w,"Scan speed +",()->cfg.scanBudget=Math.min(10000,cfg.scanBudget+500));
             btn(x,y+143,310,"Lava warning: "+on(cfg.lavaWarning),()->cfg.lavaWarning=!cfg.lavaWarning);
-            btn(x,y+171,w,"Resume death tracking",DeathCompass::stopSearch);
+            btn(x,y+171,w,"Resume death",DeathCompass::stopSearch);
             btn(x+160,y+171,w,"Stop finder",DeathCompass::stopSearch);
-            btn(x+80,y+197,w,"Back",()->page=0);
+            btn(x,y+197,310,"Keep target until "+cfg.lockReleaseDistance+" blocks away",()->{
+                cfg.lockReleaseDistance=switch(cfg.lockReleaseDistance){
+                    case 64->96;case 96->128;case 128->192;case 192->256;default->64;
+                };
+            });
+            btn(x+80,y+223,w,"Back",()->page=0);
         }
         btn(width/2-50,height-25,100,"Done",()->Minecraft.getInstance().gui.setScreen(null));
     }
@@ -129,11 +180,20 @@ public final class SettingsScreen extends Screen {
             graphics.text(font,"X                             Y                            Z",x,y+32,0xFFFFFFFF,true);
             graphics.text(font,searchMessage,x,y+175,0xFFFFCC88,true);
         }
+        if(page==5){
+            graphics.text(font,"SELECT A STRUCTURE (LANDMARK CLUES ONLY)",width/2-155,height/2-123,0xFFFFFFFF,true);
+        }
+        if(page==6){
+            graphics.text(font,"DANGER ALERTS - ESTIMATES ONLY",width/2-155,height/2-125,0xFFFFD088,true);
+        }
+        if(page==7){
+            graphics.text(font,"SOUND ALERTS (RED/URGENT WARNINGS ONLY)",width/2-155,height/2-124,0xFFFFD088,true);
+        }
         if(page==2){
             int x=width/2-155,y=height/2-105;
             graphics.text(font,"Search ID (e.g. minecraft:ancient_debris)",x,y+5,0xFFFFFFFF,true);
-            graphics.text(font,"Client-loaded chunks only; structures are landmark guesses.",x,y+225,0xFFDDCC88,true);
-            graphics.text(font,searchMessage,x,y+238,0xFFFFCC88,true);
+            graphics.text(font,"Loaded chunks only. Structures = clues, not verified locations.",x,y+246,0xFFDDCC88,true);
+            graphics.text(font,truncate(searchMessage,65),x,y+257,0xFFFFCC88,true);
         }
     }
     @Override public boolean isPauseScreen(){return false;}

@@ -11,7 +11,15 @@ public final class CompassHud {
     public static void draw(GuiGraphicsExtractor g, DeltaTracker dt) {
         Minecraft mc=Minecraft.getInstance();TrackerData cfg=DeathCompass.data;
         if(!cfg.enabled||mc.player==null||mc.level==null)return;
-        if(DeathCompass.lavaBeneathAimedBlock(mc)) center(g,mc,"! LAVA DIRECTLY UNDER TARGET BLOCK !",g.guiWidth()/2, g.guiHeight()/2-38,0xFFFF5555);
+        int hazardY=g.guiHeight()/2-59;
+        for(HazardScanner.Warning hazard : HazardScanner.warnings()) {
+            String line="! " + hazard.message() + " !";
+            int middle=g.guiWidth()/2;
+            int half=mc.font.width(line)/2+7;
+            g.fill(middle-half,hazardY-3,middle+half,hazardY+12,0xB50F1218);
+            center(g,mc,line,middle,hazardY,hazard.color());
+            hazardY+=15;
+        }
         TrackerData.WorldRecord w=DeathCompass.world();
         boolean searching="block".equals(w.targetMode)||"structure".equals(w.targetMode);
         boolean waypointMode="waypoint".equals(w.targetMode);
@@ -20,14 +28,17 @@ public final class CompassHud {
         if(waypointMode && waypoint==null){center(g,mc,"NO WAYPOINT SELECTED",g.guiWidth()/2+cfg.xOffset,cfg.yOffset,0xFFFFB55F);return;}
         if(!searching && !waypointMode && d==null)return;
         if(searching && !w.targetFound){
-            center(g,mc,"SEARCHING NEARBY: "+w.searchId, g.guiWidth()/2+cfg.xOffset,cfg.yOffset,cfg.color|0xFF000000);
+            int r=Math.max(4,Math.min(64,cfg.scanRadius));
+            int total=(2*r+1)*(2*r+1)*(2*r+1);
+            String status=w.scanCursor>=total?"NOT DETECTED - MOVE TO SEARCH MORE":"SCANNING "+Math.min(100,100L*w.scanCursor/total)+"%";
+            center(g,mc,status+": "+w.searchId,g.guiWidth()/2+cfg.xOffset,cfg.yOffset,cfg.color|0xFF000000);
             return;
         }
         int goalX=waypointMode?waypoint.x:searching?w.targetX:d.x;
         int goalY=waypointMode?waypoint.y:searching?w.targetY:d.y;
         int goalZ=waypointMode?waypoint.z:searching?w.targetZ:d.z;
         String goalDimension=waypointMode?waypoint.dimension:searching?w.targetDimension:d.dimension;
-        String goalLabel=waypointMode?"WAYPOINT "+waypoint.name:searching?("block".equals(w.targetMode)?"BLOCK ":"STRUCTURE CLUE ")+w.searchId:"DEATH";
+        String goalLabel=waypointMode?"WAYPOINT "+waypoint.name:searching?("block".equals(w.targetMode)?"LOCKED BLOCK ":"STRUCTURE CLUE ")+w.searchId:"DEATH";
         int cx=g.guiWidth()/2+cfg.xOffset, top=cfg.yOffset;
         int color=cfg.color|0xFF000000;
         boolean other=!DeathCompass.dimension(mc).equals(goalDimension);
