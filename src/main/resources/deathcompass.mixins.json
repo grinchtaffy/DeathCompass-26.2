@@ -1,13 +1,14 @@
+
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "dev.deathcompass",
+  "package": "dev.deathcompass.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [],
   "client": [
     "KeyMappingClickAccess",
-    "mixin.SecondaryKeysMixin",
-    "mixin.ControlsScreenMixin"
+    "SecondaryKeysMixin",
+    "ControlsScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
