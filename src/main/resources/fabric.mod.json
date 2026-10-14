@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "deathcompass",
+  "version": "${version}",
+  "name": "Death Compass",
+  "description": "Client-side death compass with arrows, coordinates, world history and known-portal tracking.",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.deathcompass.DeathCompass"] },
+  "depends": { "fabricloader": ">=0.19.0", "minecraft": "~26.2", "java": ">=25", "fabric-api": "*" }
+}
