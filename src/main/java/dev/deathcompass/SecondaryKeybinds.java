@@ -4,14 +4,15 @@ package dev.deathcompass;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.deathcompass.mixin.KeyMappingClickAccess;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,8 +63,7 @@ public final class SecondaryKeybinds {
                 GLFW.GLFW_KEY_K,
                 KeyMapping.Category.register(
                     Identifier.fromNamespaceAndPath(
-                        "deathcompass",
-                        "main"
+                        "deathcompass", "main"
                     )
                 )
             )
@@ -73,7 +73,9 @@ public final class SecondaryKeybinds {
             while (screenKey.consumeClick()) {
                 Screen parent = mc.gui.screen();
 
-                if (parent == null && mc.player == null) continue;
+                if (parent == null && mc.player == null) {
+                    continue;
+                }
 
                 mc.gui.setScreen(
                     new SecondaryKeybindsScreen(parent)
@@ -89,10 +91,8 @@ public final class SecondaryKeybinds {
     public static List<KeyMapping> allBindings() {
         Minecraft mc = Minecraft.getInstance();
 
-        if (
-            mc.options == null ||
-            mc.options.keyMappings == null
-        ) {
+        if (mc.options == null ||
+            mc.options.keyMappings == null) {
             return List.of();
         }
 
@@ -100,8 +100,9 @@ public final class SecondaryKeybinds {
             return cachedList;
         }
 
-        List<KeyMapping> bindings =
-            new ArrayList<>(Arrays.asList(mc.options.keyMappings));
+        List<KeyMapping> bindings = new ArrayList<>(
+            Arrays.asList(mc.options.keyMappings)
+        );
 
         bindings.removeIf(Objects::isNull);
 
@@ -109,9 +110,7 @@ public final class SecondaryKeybinds {
             Comparator.comparing(
                 (KeyMapping k) -> k.getCategory().toString()
             ).thenComparing(
-                k -> Component.translatable(
-                    k.getName()
-                ).getString(),
+                k -> Component.translatable(k.getName()).getString(),
                 String.CASE_INSENSITIVE_ORDER
             )
         );
@@ -146,7 +145,6 @@ public final class SecondaryKeybinds {
         );
 
         data.bindings.put(action.getName(), spec);
-
         held.clear();
         write();
     }
@@ -155,7 +153,6 @@ public final class SecondaryKeybinds {
         if (action == null || data.bindings == null) return;
 
         data.bindings.remove(action.getName());
-
         held.clear();
         write();
     }
@@ -205,18 +202,14 @@ public final class SecondaryKeybinds {
 
             KeySpec secondary = get(other);
 
-            if (
-                secondary != null &&
-                key.equals(keyId(secondary))
-            ) {
+            if (secondary != null &&
+                key.equals(keyId(secondary))) {
                 return true;
             }
 
-            if (
-                key.equals(
-                    keyId(KeyMappingHelper.getBoundKeyOf(other))
-                )
-            ) {
+            if (key.equals(
+                keyId(KeyMappingHelper.getBoundKeyOf(other))
+            )) {
                 return true;
             }
         }
@@ -225,11 +218,9 @@ public final class SecondaryKeybinds {
     }
 
     public static void onClick(InputConstants.Key key) {
-        if (
-            key == null ||
+        if (key == null ||
             !DeathCompass.data.enabled ||
-            data.bindings == null
-        ) {
+            data.bindings == null) {
             return;
         }
 
@@ -238,22 +229,19 @@ public final class SecondaryKeybinds {
         for (KeyMapping mapping : allBindings()) {
             KeySpec spec = get(mapping);
 
-            if (
-                spec == null ||
-                !input.equals(keyId(spec))
-            ) {
+            if (spec == null ||
+                !input.equals(keyId(spec))) {
                 continue;
             }
 
-            if (
-                key.equals(
-                    KeyMappingHelper.getBoundKeyOf(mapping)
-                )
-            ) {
+            if (key.equals(
+                KeyMappingHelper.getBoundKeyOf(mapping)
+            )) {
                 continue;
             }
 
-            var clicks = (KeyMappingClickAccess)(Object) mapping;
+            var clicks =
+                (KeyMappingClickAccess)(Object) mapping;
 
             clicks.deathcompass$setClicks(
                 Math.min(
@@ -281,10 +269,8 @@ public final class SecondaryKeybinds {
         KeyMapping mapping,
         InputConstants.Key input
     ) {
-        if (
-            !DeathCompass.data.enabled ||
-            input == null
-        ) {
+        if (!DeathCompass.data.enabled ||
+            input == null) {
             return false;
         }
 
@@ -317,10 +303,8 @@ public final class SecondaryKeybinds {
                     Data.class
                 );
 
-                if (
-                    loaded != null &&
-                    loaded.bindings != null
-                ) {
+                if (loaded != null &&
+                    loaded.bindings != null) {
                     data = loaded;
                 }
             }
