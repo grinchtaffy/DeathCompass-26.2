@@ -1,5 +1,11 @@
+
 {
   "key.category.deathcompass.main": "Death Compass",
   "key.deathcompass.settings": "Open Death Compass Settings",
-  "key.deathcompass.secondary_screen": "Open Secondary Keybinds"
+  "key.deathcompass.secondary_screen": "Open Secondary Keybinds",
+  "key.deathcompass.quick_waypoint": "Quick Waypoint: Save Current Position",
+  "key.deathcompass.accept_vein": "Accept Larger Ore Vein",
+  "key.deathcompass.keep_vein": "Keep Current Ore Target",
+  "key.deathcompass.freecam": "Toggle Freecam",
+  "key.deathcompass.minimap": "Show / Hide Minimap"
 }
