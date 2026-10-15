@@ -1,9 +1,10 @@
+
 {
   "schemaVersion": 1,
   "id": "deathcompass",
   "version": "${version}",
   "name": "Death Compass",
-  "description": "Client-side death compass, stable finder, mining safety sounds, custom waypoints, and secondary bindings for vanilla and modded controls.",
+  "description": "Client-side Death Compass with quick waypoints, ore vein scanner, optional detached freecam, independent terrain minimap, warnings, and secondary keybindings.",
   "environment": "client",
   "entrypoints": {
     "client": [
