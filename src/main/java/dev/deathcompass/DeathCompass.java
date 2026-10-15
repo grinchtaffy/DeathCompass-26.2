@@ -140,8 +140,17 @@ public final class DeathCompass implements ClientModInitializer {
         BlockPos here=mc.player.blockPosition();
         String name="Quick " + number;
         addWaypoint(name,here.getX(),here.getY(),here.getZ(),dimension(mc));
-        mc.player.displayClientMessage(Component.literal(
-            "Saved " + name + " at " + here.getX() + ", " + here.getY() + ", " + here.getZ()), true);
+       
+mc.gui.hud.setOverlayMessage(
+    Component.literal(
+        "Saved " + name + " at " +
+        here.getX() + ", " +
+        here.getY() + ", " +
+        here.getZ()
+    ),
+    false
+);
+
     }
 
     static String veinResponseKeys() {
